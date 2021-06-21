@@ -45,11 +45,11 @@ enum class RoundingMode {
      */
     NONE,
     /**
-     * Round towards nearest integer, using towards zero as tie breaker when significant digit being rounded is 5
+     * Round towards nearest integer, using away from zero as tie breaker when significant digit being rounded is 5
      */
     ROUND_HALF_AWAY_FROM_ZERO,
     /**
-     * Round towards nearest integer, using away from zero as tie breaker when significant digit being rounded is 5
+     * Round towards nearest integer, using towards zero as tie breaker when significant digit being rounded is 5
      */
     ROUND_HALF_TOWARDS_ZERO,
     /**
@@ -60,15 +60,14 @@ enum class RoundingMode {
      * Round towards nearest integer, using towards negative infinity as tie breaker when significant digit being rounded is 5
      */
     ROUND_HALF_FLOOR,
-    // For future releases
-//    /**
-//     * Round towards nearest even integer
-//     */
-//    ROUND_HALF_TO_EVEN,
-//    /**
-//     * Round towards neares odd integer
-//     */
-//    ROUND_HALF_TO_ODD
+    /**
+     * Round towards nearest even integer
+     */
+    ROUND_HALF_TO_EVEN,
+    /**
+     * Round towards neares odd integer
+     */
+    ROUND_HALF_TO_ODD
 }
 
 /**
@@ -77,11 +76,12 @@ enum class RoundingMode {
  * @param decimalPrecision max number of digits allowed. Default 0 is unlimited precision.
  * @param roundingMode default RoundingMode.NONE is used with unlimited precision and no specified scale.
  * Otherwise specify mode that is used for rounding when decimalPrecision is exceeded, or when scale is in use.
- * @param scale is number of digits to the right of the decimal point. It is a subset of precision.
+ * @param scale is number of digits to the right of the decimal point.
  * When this is specified, a RoundingMode that is not RoundingMode.NONE is also required.
  * Scale cannot be greater than precision - 1.
  * If left to default = null, no scale will be used. Rounding and decimalPrecision apply.
  * Negative scale numbers are not supported.
+ * Using scale will increase the precision to required number of digits.
  */
 data class DecimalMode(
     val decimalPrecision: Long = 0,
@@ -93,7 +93,7 @@ data class DecimalMode(
     val usingScale = scale >= 0
 
     init {
-        if (decimalPrecision == 0L && roundingMode != RoundingMode.NONE) {
+        if (usingScale.not() && decimalPrecision == 0L && roundingMode != RoundingMode.NONE) {
             throw ArithmeticException("Rounding mode with 0 digits precision.")
         }
         if (scale < -1) {
@@ -101,11 +101,6 @@ data class DecimalMode(
         }
         if (usingScale && roundingMode == RoundingMode.NONE) {
             throw ArithmeticException("Scale of $scale digits to the right of the decimal requires a RoundingMode that is not NONE.")
-        }
-        if (usingScale) {
-            if (!isPrecisionUnlimited && scale >= decimalPrecision) {
-                throw ArithmeticException("Scale of $scale digits to the right of the decimal must be less than precision $decimalPrecision.")
-            }
         }
     }
 

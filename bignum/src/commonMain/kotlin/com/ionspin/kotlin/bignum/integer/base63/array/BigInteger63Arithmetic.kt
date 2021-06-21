@@ -1925,7 +1925,7 @@ internal object BigInteger63Arithmetic : BigIntegerArithmetic {
     override fun parseForBase(number: String, base: Int): ULongArray {
         var parsed = ZERO
         number.toLowerCase().forEach { char ->
-            parsed = (parsed * base.toULong()) + (char.toDigit()).toULong()
+            parsed = (parsed * base.toULong()) + (char.toDigit(base)).toULong()
         }
         return removeLeadingZeros(
             parsed
@@ -1973,6 +1973,7 @@ internal object BigInteger63Arithmetic : BigIntegerArithmetic {
     }
 
     override fun xor(operand: ULongArray, mask: ULongArray): ULongArray {
+        if (operand.size < mask.size) return xor(mask, operand)
         return removeLeadingZeros(
             ULongArray(operand.size) {
                 if (it < mask.size) {
@@ -2203,7 +2204,7 @@ internal object BigInteger63Arithmetic : BigIntegerArithmetic {
                 ulongArray[ulongArray.size - 1] or
                     (trimmedSource[ulongsCount * 8 + i].toULong() shl ((ulongRest - 1) * 8 - i * 8))
         }
-        val result = convertFrom64BitRepresentation(ulongArray.dropLastWhile { it.toUInt() == 0U }.toULongArray())
+        val result = convertFrom64BitRepresentation(ulongArray.dropLastWhile { it == 0UL }.toULongArray())
         return result
     }
 
@@ -2221,8 +2222,7 @@ internal object BigInteger63Arithmetic : BigIntegerArithmetic {
         for (i in 0 until as64Bit.size) {
             as64Bit[i].toBigEndianUByteArray().copyInto(result, i * 8, 0, 8)
         }
-        result.dropWhile { it.toUInt() == 0U }.toUByteArray()
-        return result
+        return result.dropWhile { it.toUInt() == 0U }.toUByteArray()
     }
 
     override fun toByteArray(

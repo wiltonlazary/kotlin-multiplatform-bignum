@@ -18,6 +18,7 @@
 package com.ionspin.kotlin.bignum.decimal
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -34,10 +35,12 @@ class BigDecimalRoundingTests {
         val b = BigDecimal.fromIntWithExponent(1, -3)
         val c = BigDecimal.fromIntWithExponent(12345, 3)
         val d = BigDecimal.fromIntAsSignificand(10000)
-        assertTrue { a.numberOfDecimalDigits() == 4L }
-        assertTrue { b.numberOfDecimalDigits() == 4L }
-        assertTrue { c.numberOfDecimalDigits() == 5L }
-        assertTrue { d.numberOfDecimalDigits() == 1L }
+        assertTrue {
+            a.numberOfDecimalDigits() == 4L &&
+                    b.numberOfDecimalDigits() == 4L &&
+                    c.numberOfDecimalDigits() == 5L &&
+                    d.numberOfDecimalDigits() == 1L
+        }
     }
 
     @Test
@@ -106,9 +109,14 @@ class BigDecimalRoundingTests {
         }
 
         assertTrue {
+            val rounded = BigDecimal.parseString("9.9999")
+                .roundToDigitPosition(3, RoundingMode.CEILING)
+            rounded.toStringExpanded() == "10"
+        }
+
+        assertTrue {
             val rounded = BigDecimal.fromIntWithExponent(123456789, -3)
                 .roundToDigitPosition(3, RoundingMode.FLOOR)
-            val rs = rounded.toStringExpanded()
             rounded.toStringExpanded() == "0"
         }
 
@@ -130,7 +138,6 @@ class BigDecimalRoundingTests {
         assertTrue {
             val rounded = BigDecimal.fromIntWithExponent(123456789, 3)
                 .roundToDigitPositionAfterDecimalPoint(4, RoundingMode.CEILING)
-            val rs = rounded.toStringExpanded()
             rounded.toStringExpanded() == "1234.5679"
         }
 
@@ -165,6 +172,13 @@ class BigDecimalRoundingTests {
         }
 
         assertTrue {
+            val rounded = 999.999.toBigDecimal()
+                .roundToDigitPositionAfterDecimalPoint(1, RoundingMode.CEILING)
+
+            rounded.toStringExpanded() == "1000"
+        }
+
+        assertTrue {
             val rounded = BigDecimal.parseString("1000000.12355")
                 .roundToDigitPositionAfterDecimalPoint(3, RoundingMode.ROUND_HALF_AWAY_FROM_ZERO)
             rounded.toStringExpanded() == "1000000.124"
@@ -172,6 +186,12 @@ class BigDecimalRoundingTests {
 
         assertTrue {
             val rounded = BigDecimal.parseString("1000000.12355")
+                .roundToDigitPositionAfterDecimalPoint(3, RoundingMode.ROUND_HALF_TOWARDS_ZERO)
+            rounded.toStringExpanded() == "1000000.124"
+        }
+
+        assertTrue {
+            val rounded = BigDecimal.parseString("1000000.1235")
                 .roundToDigitPositionAfterDecimalPoint(3, RoundingMode.ROUND_HALF_TOWARDS_ZERO)
             rounded.toStringExpanded() == "1000000.123"
         }
@@ -191,12 +211,39 @@ class BigDecimalRoundingTests {
         assertTrue {
             val rounded = BigDecimal.parseString("1000000.12055")
                 .roundToDigitPositionAfterDecimalPoint(3, RoundingMode.ROUND_HALF_TOWARDS_ZERO)
+            rounded.toStringExpanded() == "1000000.121"
+        }
+
+        assertTrue {
+            val rounded = BigDecimal.parseString("1000000.1205")
+                .roundToDigitPositionAfterDecimalPoint(3, RoundingMode.ROUND_HALF_TOWARDS_ZERO)
             rounded.toStringExpanded() == "1000000.12"
         }
+
         assertTrue {
             val rounded = 9.5400000000001.toBigDecimal()
                 .roundToDigitPositionAfterDecimalPoint(2, RoundingMode.ROUND_HALF_AWAY_FROM_ZERO)
             rounded.toStringExpanded() == "9.54"
         }
+    }
+
+    @Test
+    fun testDecimalModeWhenRoundingAfterDigitPositionAfterDecimalPoint() {
+        val a = 0.333333.toBigDecimal(decimalMode = DecimalMode(4, RoundingMode.ROUND_HALF_AWAY_FROM_ZERO)).roundToDigitPositionAfterDecimalPoint(2, RoundingMode.ROUND_HALF_AWAY_FROM_ZERO)
+        val b = 1.toBigDecimal()
+        assertEquals(a, 0.33.toBigDecimal())
+        assertEquals(a.decimalMode?.decimalPrecision, 4)
+        val res = a * b
+        assertEquals(res, 0.33.toBigDecimal())
+    }
+
+    @Test
+    fun testDecimalModeWhenRoundingAfterDigitPosition() {
+        val a = 0.333333.toBigDecimal(decimalMode = DecimalMode(4, RoundingMode.ROUND_HALF_AWAY_FROM_ZERO)).roundToDigitPosition(3, RoundingMode.ROUND_HALF_AWAY_FROM_ZERO)
+        val b = 1.toBigDecimal()
+        assertEquals(a, 0.33.toBigDecimal())
+        assertEquals(a.decimalMode?.decimalPrecision, 4)
+        val res = a * b
+        assertEquals(res, 0.33.toBigDecimal())
     }
 }

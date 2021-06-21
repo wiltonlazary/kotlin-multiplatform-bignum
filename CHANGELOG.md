@@ -1,5 +1,65 @@
 ## Descriptive changelog
 (All dates are DD.MM.YYYY)
+##### 0.3.1-SNAPSHOT
+- Fix for #176, a case of unclear API. Methods `roundToDigitPositionAfterDecimalPoint` and `roundToDigitPosition` would set decimal precision to the number of digits present in the result after the rounding was completed. Now they only set decimal precision if it's explicitly set, otherwise it stays unlimited.
+- Bump to 1.5.0
+
+
+##### 0.3.0 - 17.4.2021
+- Fixed losing scale when there is a carry in addition in BigDecimal.
+- Fixed BigInteger `numberOfDecimalDigits` which would return 0 for 0 instead of 1.
+- Fixed #168 - Fix invalid rounding results
+Development roadmap for version 0.3.0 states 'API statbilization' so:
+- **API CHANGE** Extensions functions used to create BigDecimal from primitive types have been split into 'toBigDecimal(exponentModifier...)'
+  and 'toBigDecimalUsingSignificandAndExponent(exponent...)' to bring more clarity to the API and solve #164
+- **API CHANGE** BigInteger uses a sum of magnitude elements as part of hash code instead of array hash code as it wasn't stable on JS
+- **API CHANGE** BigDecimal hashCode doesn't include decimal mode anymore, so it respects contract that hash code equals another hash code
+  when equals returns true.
+- **API CHANGE** BigDecimal equals doesn't consider decimal mode anymore. Two big decimals are now equal only if they represent the same number.
+- Fixed decimal mode precision/scale mismatch in BigDecimal #161
+  - **NOTE: API CHANGE** final precision is now desiredPrecision + scale
+- Add @SharedImmutable to BigInteger to support native multithreading #159
+##### 0.2.8 - 15.2.2021
+
+- Fixed support for watchosX64/watchos86 (#150)
+- Fixed parsing characters outside of radix range (#152)
+- Fixed invalid byte array intialization (#153)
+- Fixed rounding KDoc (#156)
+
+##### 0.2.7 - 6.2.2021
+Same as 0.2.4 just a successful upload and release to Maven central
+
+##### 0.2.5 - 0.2.6 - 5.2.2021
+Failed uploads to maven central, don't use these versions.
+https://status.maven.org/incidents/z70skgbq8vgc
+
+##### 0.2.4 - 5.2.2021
+- Bump to kotlin 1.4.30
+- Fix invalid to string when big decimal is zero (#148)
+- Fix xor test which was previously testing bit shifting instead of xor (#147)
+- Fix biginteger xor operands magnitude array length mismatch (#144)
+- Fix biginteger bitwise operations sign (#142)
+- Added (back) support for legacy js target (#138)
+##### 0.2.3 - 28.11.2020
+- Bump to Kotlin 1.4.20
+- Fix for invalid exponent rounding and string representation (#139)
+- Returned mingwx86 target (#137)
+- Fixed #134 
+- Fixed #130 Conversion to double off by power of 10
+- Fixed #132 BigDecimal narrow functions toFloat() and toDouble, with exactRequired = false sometimes wrongly fail
+- Fixed floatValue and doubleValue narrowing functions (pull request #135)
+- Fixed invalid string parsing of big decimals 
+
+##### 0.2.2 - 10.10.2020 - Rework infinite precision division
+- Issue #127 - invalid division when using unlimited precision wasn't completely handled 
+in the previous release. With this release that division case was completely reworked and additional tests were added.
+
+##### 0.2.1 - 8.10.2020 - Fix infinite precision division, kotlin version bump
+- Fixed #127 BigDecimal divide not working properly
+- Added tests to cover case from #127
+- Bumped kotlin to 1.4.10
+
+
 ##### 0.2.0 - 18.8.2020 - Improvements, optimizations, bugfixes and Kotlin 1.4.0
 - Improvement #122 Add "scale" support to BigDecimal
 - Fixed #118 Rounding issue on division

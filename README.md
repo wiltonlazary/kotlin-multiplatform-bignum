@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/ionspin/kotlin-multiplatform-bignum.svg?token=HyeUGwxzSsjXNj8mianH&branch=master)](https://travis-ci.com/ionspin/kotlin-multiplatform-bignum)
+[![pipeline status](https://gitlab.com/ionspin-github-ci/kotlin-multiplatform-bignum-ci/badges/master/pipeline.svg)](https://gitlab.com/ionspin-github-ci/kotlin-multiplatform-bignum-ci/-/commits/master)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/kotlin-multiplatform-bignum/community#)
 [![Maven Central](https://img.shields.io/maven-central/v/com.ionspin.kotlin/bignum.svg)](https://repo1.maven.org/maven2/com/ionspin/kotlin/bignum/)
 # Kotlin MP BigNum library 
@@ -9,11 +9,11 @@ familiar.
 
 ## Notes & Roadmap
 
-This is very early version of the library, and has the base implementation of **integer** and **floating point** operations. 
-Modular arithmetic is planned for future releases, as well as improvements such as Karatsuba multiplication, 
-Toom-Cook, division using multiplication by reciprocal, and other.
+This is an implementation of pure kotlin arbitrary integer and floating-point arithmetic support.
 
-**The API will move fast and break often until v1.0**
+**The APIs might change until v1.0**
+
+Version 0.3.0 brings API changes to BigDecimal API see changelog for full list.
 
 Also, there is a plan to implement platform native versions.
 
@@ -21,25 +21,15 @@ Testing to verify that the library works properly is mostly done against Java Bi
 
 ## Should I use this in production?
 
-The library is still under heavy development, and relies on experimental kotlin features, like unsigned integer. 
+The library is still under development, but at the moment it is feature complete, further improvements will be optimizations
+and bug-fixing. 
 
 ## Integration
 
 #### Gradle
 ```kotlin
-implementation("com.ionspin.kotlin:bignum:0.2.0")
+implementation("com.ionspin.kotlin:bignum:0.3.1")
 ```
-
-#### Gradle Metadata
-BigNum library up to 0.1.0 was published with Gradle Metadata 0.4
-To use it you need to add 
-```
-enableFeaturePreview("GRADLE_METADATA")
-```
-to your `settings.gradle` file
-
-From version 0.1.3 BigNum library will be publishing Gradle Metadata 1.0.0 which will only be usable by Gradle >= 5.3.
-If you are using version 0.1.1 you don't need to modify your settings.gradle
 
 #### Snapshot builds
 ```kotlin
@@ -48,9 +38,34 @@ repositories {
         url = uri("https://oss.sonatype.org/content/repositories/snapshots")
     }
 }
-implementation("com.ionspin.kotlin:bignum:0.2.1-SNAPSHOT ")
+implementation("com.ionspin.kotlin:bignum:0.3.2-SNAPSHOT")
 
 ```
+
+#### 1.4.32 Kotlin based release
+
+Because there is a problem using unsigned integers when an importing project is using Kotlin 1.4.32 and the library is based on kotlin 1.5.0 I'm providing a version 
+of the library built with Kotlin 1.4.32 as well for the time being.
+
+**Stable:**
+
+```kotlin
+implementation("com.ionspin.kotlin:bignum:0.3.1-1.4.32")
+```
+
+**Snapshot**
+
+```kotlin
+repositories {
+    maven {
+        url = uri("https://oss.sonatype.org/content/repositories/snapshots")
+    }
+}
+implementation("com.ionspin.kotlin:bignum:0.3.2-1.4.32-SNAPSHOT")
+
+```
+
+
 
 ## Usage
 
@@ -374,10 +389,10 @@ Standard arithmetic operations that are present:
 Operations are executed with existing significands and then rounded down afterwards. Decimal mode parameter controls the precision and rounding mode
 
 ### DecimalMode
-This is a counterpart to the Java BigDecimal MathContext. 
+This is a counterpart to the Java BigDecimal MathContext and scale at the same time. Decimal mode API is under revision and will be improved during 0.3.0-0.4.0 library lifecycle
 
 ```kotlin
-data class DecimalMode(val decimalPrecision : Long = 0, val roundingMode : RoundingMode = RoundingMode.NONE)
+data class DecimalMode(val decimalPrecision : Long = 0, val roundingMode : RoundingMode = RoundingMode.NONE, val scale: Long = -1)
 ``` 
 
 `decimalPrecision` defines how many digits should significand have
@@ -409,7 +424,7 @@ whether unlimited precision or limited precision, then these rules for scale of 
 
 ##### Infinite precision  
 
-Precision 0 and roundingMode none attempt to provide infinite precisions. Exception is division, where default precision is
+Precision 0 and roundingMode none attempt to provide infinite precisions. Exception is division, where default precision 
 is the sum of precisions of operands (or 6, if the sum is below 6). If result of the operation cannot fit inside precision and RoundingMode is NONE, `ArithmeticException` 
 will be thrown.
 

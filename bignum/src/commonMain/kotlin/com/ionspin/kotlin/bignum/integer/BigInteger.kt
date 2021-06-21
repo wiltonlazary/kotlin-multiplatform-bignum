@@ -36,7 +36,7 @@ import kotlin.math.log10
  * Based on unsigned arrays, currently limited to [Int.MAX_VALUE] words.
  */
 
-class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : BigNumber<BigInteger>,
+class BigInteger internal constructor(wordArray: WordArray, requestedSign: Sign) : BigNumber<BigInteger>,
     CommonBigNumberOperations<BigInteger>,
     NarrowingOperations<BigInteger>,
     BitwiseCapable<BigInteger>, Comparable<Any>,
@@ -46,6 +46,14 @@ class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : Bi
     constructor(int: Int) : this(arithmetic.fromInt(int), determinSignFromNumber(int))
     constructor(short: Short) : this(arithmetic.fromShort(short), determinSignFromNumber(short))
     constructor(byte: Byte) : this(arithmetic.fromByte(byte), determinSignFromNumber(byte))
+
+    init {
+        if (requestedSign == Sign.ZERO) {
+            require(isResultZero(wordArray)) {
+                "sign should be Sign.ZERO iff magnitude has a value of 0"
+            }
+        }
+    }
 
     override fun getCreator(): BigNumber.Creator<BigInteger> {
         return BigInteger
@@ -66,6 +74,9 @@ class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : Bi
         val LOG_10_OF_2 = log10(2.0)
 
         override fun parseString(string: String, base: Int): BigInteger {
+            if (base < 2 || base > 36) {
+                throw NumberFormatException("Unsupported base: $base. Supported base range is from 2 to 36")
+            }
             val decimal = string.contains('.')
             if (decimal) {
                 val bigDecimal = BigDecimal.parseString(string)
@@ -214,6 +225,12 @@ class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : Bi
     }
 
     internal val magnitude: WordArray = BigInteger63Arithmetic.removeLeadingZeros(wordArray)
+
+    internal val sign: Sign = if (isResultZero(magnitude)) {
+        Sign.ZERO
+    } else {
+        requestedSign
+    }
 
     private fun isResultZero(resultMagnitude: WordArray): Boolean {
         return arithmetic.compare(resultMagnitude, arithmetic.ZERO) == 0
@@ -436,26 +453,31 @@ class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : Bi
     }
 
     override fun negate(): BigInteger {
-        return BigInteger(wordArray = this.magnitude, sign = sign.not())
+        return BigInteger(wordArray = this.magnitude, requestedSign = sign.not())
     }
 
     override fun abs(): BigInteger {
-        return BigInteger(wordArray = this.magnitude, sign = Sign.POSITIVE)
+        return BigInteger(wordArray = this.magnitude, requestedSign = Sign.POSITIVE)
     }
 
     fun pow(exponent: BigInteger): BigInteger {
+        if (exponent < ZERO)
+            throw ArithmeticException("Negative exponent not supported with BigInteger")
+
         if (exponent <= Long.MAX_VALUE) {
             return pow(exponent.magnitude[0].toLong())
         }
-        // TODO this is not efficient
-        var counter = exponent
-        var result = ONE
-        while (counter > 0) {
-            counter--
-            result *= this
-        }
 
-        return result
+        return exponentiationBySquaring(ONE, this, exponent)
+    }
+
+    private tailrec fun exponentiationBySquaring(y: BigInteger, x: BigInteger, n: BigInteger): BigInteger {
+        return when {
+            n == ZERO -> y
+            n == ONE -> x * y
+            n.mod(TWO) == ZERO -> exponentiationBySquaring(y, x * x, n / 2)
+            else -> exponentiationBySquaring(x * y, x * x, (n - 1) / 2)
+        }
     }
 
     override fun pow(exponent: Long): BigInteger {
@@ -499,6 +521,9 @@ class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : Bi
     }
 
     override fun numberOfDecimalDigits(): Long {
+        if (isZero()) {
+            return 1
+        }
         val bitLenght = arithmetic.bitLength(magnitude)
         val minDigit = ceil((bitLenght - 1) * LOG_10_OF_2)
 //        val maxDigit = floor(bitLenght * LOG_10_OF_2) + 1
@@ -560,7 +585,13 @@ class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : Bi
     }
 
     override infix fun xor(other: BigInteger): BigInteger {
-        return BigInteger(arithmetic.xor(this.magnitude, other.magnitude), sign)
+        val resultMagnitude = arithmetic.xor(this.magnitude, other.magnitude)
+        val resultSign = when {
+            this.isNegative xor other.isNegative -> Sign.NEGATIVE
+            isResultZero(resultMagnitude) -> Sign.ZERO
+            else -> Sign.POSITIVE
+        }
+        return BigInteger(resultMagnitude, resultSign)
     }
 
     /**
@@ -656,7 +687,7 @@ class BigInteger internal constructor(wordArray: WordArray, val sign: Sign) : Bi
     }
 
     override fun hashCode(): Int {
-        return magnitude.hashCode() + sign.hashCode()
+        return magnitude.fold(0) { acc, uLong -> acc + uLong.hashCode() } + sign.hashCode()
     }
 
     override fun toString(): String {

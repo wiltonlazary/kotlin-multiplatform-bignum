@@ -17,13 +17,10 @@
 
 @file:Suppress("UnstableApiUsage")
 
-import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
-
 plugins {
     kotlin(PluginsDeps.multiplatform)
     id(PluginsDeps.mavenPublish)
     id(PluginsDeps.signing)
-    id(PluginsDeps.node) version Versions.nodePlugin
     id(PluginsDeps.dokka)
     id(PluginsDeps.spotless) version PluginsDeps.Versions.spotlessVersion
 }
@@ -66,7 +63,7 @@ repositories {
     jcenter()
 }
 group = "com.ionspin.kotlin"
-version = "0.2.1-SNAPSHOT"
+version = "0.3.2-SNAPSHOT"
 
 val ideaActive = System.getProperty("idea.active") == "true"
 
@@ -110,7 +107,7 @@ kotlin {
                 browser() {
                     testTask {
                         useKarma {
-                            usePhantomJS()
+                            useChromeHeadless()
                         }
                     }
                 }
@@ -127,21 +124,23 @@ kotlin {
             }
         }
 
-        linuxArm32Hfp() {
-            binaries {
-                staticLib {
+        if (ideaActive.not()) {
+            linuxArm32Hfp() {
+                binaries {
+                    staticLib {
+                    }
                 }
             }
-        }
 
-        linuxArm64() {
-            binaries {
-                staticLib {
+            linuxArm64() {
+                binaries {
+                    staticLib {
+                    }
                 }
             }
         }
     }
-
+//
     iosX64("ios") {
         binaries {
             framework {
@@ -174,8 +173,16 @@ kotlin {
             }
         }
     }
+    if (ideaActive.not()) {
+        watchos() {
+            binaries {
+                framework {
+                }
+            }
+        }
+    }
 
-    watchos() {
+    watchosX86() {
         binaries {
             framework {
             }
@@ -185,6 +192,14 @@ kotlin {
     mingwX64() {
         binaries {
             staticLib {
+            }
+        }
+    }
+    if (ideaActive.not()) {
+        mingwX86() {
+            binaries {
+                staticLib {
+                }
             }
         }
     }
@@ -201,7 +216,7 @@ kotlin {
             dependencies {
                 implementation(kotlin(Deps.Common.test))
                 implementation(kotlin(Deps.Common.testAnnotation))
-                implementation(Deps.Common.coroutines)
+                implementation(Deps.Common.coroutinesMT)
             }
         }
 
@@ -263,20 +278,23 @@ kotlin {
                 dependsOn(nativeTest)
             }
 
-            val linuxArm32HfpMain by getting {
-                dependsOn(nativeMain)
-            }
+            if (ideaActive.not()) {
 
-            val linuxArm32HfpTest by getting {
-                dependsOn(nativeTest)
-            }
+                val linuxArm32HfpMain by getting {
+                    dependsOn(nativeMain)
+                }
 
-            val linuxArm64Main by getting {
-                dependsOn(nativeMain)
-            }
+                val linuxArm32HfpTest by getting {
+                    dependsOn(nativeTest)
+                }
 
-            val linuxArm64Test by getting {
-                dependsOn(nativeTest)
+                val linuxArm64Main by getting {
+                    dependsOn(nativeMain)
+                }
+
+                val linuxArm64Test by getting {
+                    dependsOn(nativeTest)
+                }
             }
         }
 
@@ -314,10 +332,21 @@ kotlin {
         val tvosTest by getting {
             dependsOn(nativeTest)
         }
-        val watchosMain by getting {
+        if (ideaActive.not()) {
+            val watchosMain by getting {
+                dependsOn(nativeMain)
+            }
+
+            val watchosTest by getting {
+                dependsOn(nativeTest)
+            }
+        }
+
+        val watchosX86Main by getting {
             dependsOn(nativeMain)
         }
-        val watchosTest by getting {
+
+        val watchosX86Test by getting {
             dependsOn(nativeTest)
         }
 
@@ -328,6 +357,16 @@ kotlin {
         val mingwX64Test by getting {
             dependsOn(nativeTest)
         }
+
+    if (ideaActive.not()) {
+        val mingwX86Main by getting {
+            dependsOn(nativeMain)
+        }
+
+        val mingwX86Test by getting {
+            dependsOn(nativeTest)
+        }
+    }
 
         all {
             languageSettings.enableLanguageFeature("InlineClasses")
@@ -366,28 +405,39 @@ tasks {
             }
         }
 
-        val jsNodeTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
-            testLogging {
-                events("PASSED", "FAILED", "SKIPPED")
-            }
-        }
-
-        val jsBrowserTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
-            testLogging {
-                events("PASSED", "FAILED", "SKIPPED")
-                showStandardStreams = true
-            }
-        }
+//        val jsIrNodeTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
+//            testLogging {
+//                events("PASSED", "FAILED", "SKIPPED")
+//            }
+//        }
+//
+//        val jsIrBrowserTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
+//            testLogging {
+//                events("PASSED", "FAILED", "SKIPPED")
+//            }
+//        }
+//
+//        val jsLegacyNodeTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
+//            testLogging {
+//                events("PASSED", "FAILED", "SKIPPED")
+//            }
+//        }
+//
+//        val jsLegacyBrowserTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
+//            testLogging {
+//                events("PASSED", "FAILED", "SKIPPED")
+//            }
+//        }
     }
-
-    if (hostOsName == HostOs.LINUX) {
-        val linuxTest by getting(KotlinNativeTest::class) {
-            testLogging {
-                events("PASSED", "FAILED", "SKIPPED")
-                // showStandardStreams = true
-            }
-        }
-    }
+//
+//    if (hostOsName == HostOs.LINUX) {
+//        val linuxTest by getting(KotlinNativeTest::class) {
+//            testLogging {
+//                events("PASSED", "FAILED", "SKIPPED")
+//                // showStandardStreams = true
+//            }
+//        }
+//    }
 }
 
 spotless {
