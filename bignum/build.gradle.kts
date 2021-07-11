@@ -57,10 +57,6 @@ val sonatypeUsernameEnv: String? = System.getenv()["SONATYPE_USERNAME"]
 repositories {
     mavenCentral()
     google()
-    maven("https://kotlin.bintray.com/kotlinx")
-    maven("https://dl.bintray.com/kotlin/kotlin-eap")
-    maven("https://dl.bintray.com/kotlin/kotlin-dev")
-    jcenter()
 }
 group = "com.ionspin.kotlin"
 version = "0.3.2-SNAPSHOT"
@@ -384,18 +380,14 @@ tasks {
     val hostOsName = getHostOsName()
 
     create<Jar>("javadocJar") {
-        dependsOn(dokkaJavadoc)
+        dependsOn(dokkaHtml)
         archiveClassifier.set("javadoc")
-        from(dokkaJavadoc.get().outputDirectory)
+        from(dokkaHtml.get().outputDirectory)
     }
 
-    dokkaJavadoc {
+    dokkaHtml {
         println("Dokka !")
         dokkaSourceSets {
-            create("commonMain") {
-                displayName = "common"
-                platform = "common"
-            }
         }
     }
     if (hostOsName == primaryDevelopmentOs) {
