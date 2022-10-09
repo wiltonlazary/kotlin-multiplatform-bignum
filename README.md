@@ -1,5 +1,4 @@
-[![pipeline status](https://gitlab.com/ionspin-github-ci/kotlin-multiplatform-bignum-ci/badges/master/pipeline.svg)](https://gitlab.com/ionspin-github-ci/kotlin-multiplatform-bignum-ci/-/commits/master)
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/kotlin-multiplatform-bignum/community#)
+[![pipeline status](https://gitlab.com/ionspin-github-ci/kotlin-multiplatform-bignum-ci/badges/main/pipeline.svg)](https://gitlab.com/ionspin-github-ci/kotlin-multiplatform-bignum-ci/-/commits/main)
 [![Maven Central](https://img.shields.io/maven-central/v/com.ionspin.kotlin/bignum.svg)](https://repo1.maven.org/maven2/com/ionspin/kotlin/bignum/)
 # Kotlin MP BigNum library 
 
@@ -28,7 +27,7 @@ and bug-fixing.
 
 #### Gradle
 ```kotlin
-implementation("com.ionspin.kotlin:bignum:0.3.1")
+implementation("com.ionspin.kotlin:bignum:0.3.7")
 ```
 
 #### Snapshot builds
@@ -38,33 +37,16 @@ repositories {
         url = uri("https://oss.sonatype.org/content/repositories/snapshots")
     }
 }
-implementation("com.ionspin.kotlin:bignum:0.3.2-SNAPSHOT")
+implementation("com.ionspin.kotlin:bignum:0.3.8-SNAPSHOT")
 
 ```
 
-#### 1.4.32 Kotlin based release
+## Serialization
 
-Because there is a problem using unsigned integers when an importing project is using Kotlin 1.4.32 and the library is based on kotlin 1.5.0 I'm providing a version 
-of the library built with Kotlin 1.4.32 as well for the time being.
+Serializers for KotlinX Serializtion library are provided, see more here [kotlinx serialization support](bignum-serialization-kotlinx/README.md)
 
-**Stable:**
-
-```kotlin
-implementation("com.ionspin.kotlin:bignum:0.3.1-1.4.32")
-```
-
-**Snapshot**
-
-```kotlin
-repositories {
-    maven {
-        url = uri("https://oss.sonatype.org/content/repositories/snapshots")
-    }
-}
-implementation("com.ionspin.kotlin:bignum:0.3.2-1.4.32-SNAPSHOT")
-
-```
-
+Note that because kotlinx doesn't support linux ARM targets as well as MinGW x86, serialization support library doesn't either.
+Additionally, because of a bug when building serialization support library only JS IR variant is provided.
 
 
 ## Usage
@@ -424,8 +406,7 @@ whether unlimited precision or limited precision, then these rules for scale of 
 
 ##### Infinite precision  
 
-Precision 0 and roundingMode none attempt to provide infinite precisions. Exception is division, where default precision 
-is the sum of precisions of operands (or 6, if the sum is below 6). If result of the operation cannot fit inside precision and RoundingMode is NONE, `ArithmeticException` 
+Precision 0 and roundingMode none attempt to provide infinite precisions. Exception is division (and exponentiation with negative parameter), where default precision is the sum of precisions of operands (or 6, if the sum is below 6). If result of the operation cannot fit inside precision and RoundingMode is NONE, `ArithmeticException` 
 will be thrown.
 
 Example from the tests:

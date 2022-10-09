@@ -16,13 +16,13 @@
  */
 
 object Versions {
-    val kotlinCoroutines = "1.4.2"
-    val kotlinCoroutinesMT = "1.4.3-native-mt"
-    val kotlin = "1.5.0"
-    val kotlinSerialization = "1.0.0"
-    val nodePlugin = "1.3.0"
-    val dokkaPlugin = "1.5.0"
+    val kotlinCoroutines = "1.6.3"
+    val kotlin = "1.7.10"
+    val kotlinSerialization = "1.3.3"
+    val dokkaPlugin = "1.7.10"
 }
+
+val projectVersion = "0.3.8-SNAPSHOT"
 
 object Deps {
 
@@ -31,8 +31,9 @@ object Deps {
         val test = "test-common"
         val testAnnotation = "test-annotations-common"
         val coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.kotlinCoroutines}"
-        val coroutinesMT = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.kotlinCoroutinesMT}"
-        val serialization = "org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:${Versions.kotlinSerialization}"
+        val testCoroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinCoroutines}"
+        val kotlinxSerialization = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinSerialization}"
+        val bignum = "com.ionspin.kotlin:bignum:$projectVersion"
     }
 
     object Js {
@@ -61,19 +62,25 @@ object Deps {
         val serialization = "org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:${Versions.kotlinSerialization}"
         val coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.kotlinCoroutines}"
     }
+
+    object Project {
+        val bignum = ":bignum"
+    }
 }
 
 object PluginsDeps {
     object Versions {
-        val spotlessVersion = "5.1.0"
+        val spotlessVersion = "5.14.0"
+        val kotlinxSerialization = "1.5.0"
     }
 
-    val kotlinSerializationPlugin = "kotlinx-serialization"
+
     val multiplatform = "multiplatform"
     val node = "com.github.node-gradle.node"
     val mavenPublish = "maven-publish"
     val signing = "signing"
     val dokka = "org.jetbrains.dokka"
     val spotless = "com.diffplug.spotless"
+    val kotlinxSerialization = "plugin.serialization"
 }
 

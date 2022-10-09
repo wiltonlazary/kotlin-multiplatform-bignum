@@ -1,6 +1,41 @@
 ## Descriptive changelog
 (All dates are DD.MM.YYYY)
-##### 0.3.1-SNAPSHOT
+
+##### 0.3.8-SNAPSHOT - current snapshot
+
+##### 0.3.7 - 6.8.2022
+- Bump to Kotlin 1.7.10
+- Fix for #239, toPlainString which was supposed to return same result as JVM was truncating zeroes when scale was used. 
+- Fix for #238, wrong exponent in resolved decimal precision was used in divideAndRemainder
+- Fix for #237, when precision and exponent are same invalid value was returned
+- Fix for #231, exception incorrectly thrown when using scale (the library was only checking for unlimited precision instead of that and presence of scale)
+
+##### 0.3.6 - 22.5.2022
+- Provide big integer/big decimal to their java counterpart conversion methods. They are slow as they rely on string conversion. #230
+- Update to Kotlin 1.6.21
+- Fix for #229, incorrect toDouble result when exact result is not required and significand was larger than Long.MAX_VALUE
+
+
+##### 0.3.4-SNAPSHOT - 15.1.2022
+- Throw a specific exception when exponentiation of zero with negative exponent is attempted (#206)
+- Remove zero counting debug log (#210)
+- Fix for invalid decimal precision when dividend has exponent -1 (#195)
+- **API CHANGE** Narrowing function (longValue, intValue, doubleValue...) are now defaulting to `exactRequired` which means they
+will throw ArithmeticException if the conversion cannot be done without loss.
+- Use temporary javascript comparison workaround to handle precision loss. 
+  
+
+##### 0.3.3 - 9.11.2021
+- Add support for apple silicon (#188 #194)
+
+##### 0.3.2 - 5.9.2021
+- Added kotlinx serialization support library
+- Enabled gradle dependencies verification (bootstrapped)
+- Fix for losing decimal mode when using unary minus (#184)
+- Fix for losing sign when narrowing to long from big integer (#186)
+
+
+##### 0.3.1 - 10.5.2021
 - Fix for #176, a case of unclear API. Methods `roundToDigitPositionAfterDecimalPoint` and `roundToDigitPosition` would set decimal precision to the number of digits present in the result after the rounding was completed. Now they only set decimal precision if it's explicitly set, otherwise it stays unlimited.
 - Bump to 1.5.0
 

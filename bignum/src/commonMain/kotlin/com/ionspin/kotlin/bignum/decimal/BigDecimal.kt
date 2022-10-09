@@ -21,10 +21,12 @@ import com.ionspin.kotlin.bignum.BigNumber
 import com.ionspin.kotlin.bignum.CommonBigNumberOperations
 import com.ionspin.kotlin.bignum.NarrowingOperations
 import com.ionspin.kotlin.bignum.integer.BigInteger
-import com.ionspin.kotlin.bignum.integer.ComparisonWorkaround
+import com.ionspin.kotlin.bignum.integer.Platform
+import com.ionspin.kotlin.bignum.integer.RuntimePlatform
 import com.ionspin.kotlin.bignum.integer.Sign
 import com.ionspin.kotlin.bignum.integer.chosenArithmetic
 import com.ionspin.kotlin.bignum.integer.toBigInteger
+import com.ionspin.kotlin.bignum.integer.util.times
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -87,10 +89,10 @@ class BigDecimal private constructor(
                 decimalMode = _decimalMode.copy(decimalPrecision = precision)
             }
         } else {
-            significand = _significand
-            precision = _significand.numberOfDecimalDigits()
-            exponent = _exponent
-            decimalMode = _decimalMode
+                significand = _significand
+                precision = _significand.numberOfDecimalDigits()
+                exponent = _exponent
+                decimalMode = _decimalMode
         }
     }
 
@@ -187,9 +189,16 @@ class BigDecimal private constructor(
             } else {
                 significand.sign
             }
-
-            if (remainder.isZero()) {
-                return result
+            if (decimalMode.roundingMode != RoundingMode.AWAY_FROM_ZERO &&
+                decimalMode.roundingMode != RoundingMode.TOWARDS_ZERO
+            ) {
+                if (remainder.isZero()) {
+                    return result
+                }
+            } else {
+                if (remainder.isZero() && discarded.isZero()) {
+                    return result
+                }
             }
             val decider = determineDecider(remainder)
             when (decimalMode.roundingMode) {
@@ -387,7 +396,8 @@ class BigDecimal private constructor(
                     when (decimalMode.roundingMode) {
                         RoundingMode.CEILING, RoundingMode.AWAY_FROM_ZERO -> {
                             val increasedSignificand = significand.inc()
-                            val exponentModifier = increasedSignificand.numberOfDecimalDigits() - significand.numberOfDecimalDigits()
+                            val exponentModifier =
+                                increasedSignificand.numberOfDecimalDigits() - significand.numberOfDecimalDigits()
                             BigDecimal(increasedSignificand, exponent + exponentModifier, decimalMode)
                         }
                         else -> BigDecimal(significand, exponent, decimalMode)
@@ -397,7 +407,8 @@ class BigDecimal private constructor(
                     when (decimalMode.roundingMode) {
                         RoundingMode.FLOOR, RoundingMode.AWAY_FROM_ZERO -> {
                             val increasedSignificand = significand.dec()
-                            val exponentModifier = increasedSignificand.numberOfDecimalDigits() - significand.numberOfDecimalDigits()
+                            val exponentModifier =
+                                increasedSignificand.numberOfDecimalDigits() - significand.numberOfDecimalDigits()
                             BigDecimal(increasedSignificand, exponent + exponentModifier, decimalMode)
                         }
                         else -> BigDecimal(significand, exponent, decimalMode)
@@ -407,7 +418,11 @@ class BigDecimal private constructor(
             }
         }
 
-        private fun roundSignificand(significand: BigInteger, exponent: Long, decimalMode: DecimalMode): BigDecimal {
+        private fun roundSignificand(
+            significand: BigInteger,
+            exponent: Long,
+            decimalMode: DecimalMode
+        ): BigDecimal {
             if (significand == BigInteger.ZERO) {
                 return BigDecimal(BigInteger.ZERO, exponent, decimalMode)
             }
@@ -661,7 +676,9 @@ class BigDecimal private constructor(
         fun fromFloat(float: Float, decimalMode: DecimalMode? = null): BigDecimal {
             val floatString = float.toString()
             return if (floatString.contains('.') && !floatString.contains('E', true)) {
-                parseStringWithMode(floatString.dropLastWhile { it == '0' }, decimalMode).roundSignificand(decimalMode)
+                parseStringWithMode(floatString.dropLastWhile { it == '0' }, decimalMode).roundSignificand(
+                    decimalMode
+                )
             } else {
                 parseStringWithMode(floatString, decimalMode).roundSignificand(decimalMode)
             }
@@ -678,9 +695,12 @@ class BigDecimal private constructor(
         fun fromDouble(double: Double, decimalMode: DecimalMode? = null): BigDecimal {
             val doubleString = double.toString()
             return if (doubleString.contains('.') && !doubleString.contains('E', true)) {
-                parseStringWithMode(doubleString.dropLastWhile { it == '0' }, decimalMode).roundSignificand(decimalMode)
+                parseStringWithMode(doubleString.dropLastWhile { it == '0' }, decimalMode).roundSignificand(
+                    decimalMode
+                )
             } else {
-                parseStringWithMode(doubleString, decimalMode).roundSignificand(decimalMode).roundSignificand(decimalMode)
+                parseStringWithMode(doubleString, decimalMode).roundSignificand(decimalMode)
+                    .roundSignificand(decimalMode)
             }
         }
 
@@ -1044,11 +1064,12 @@ class BigDecimal private constructor(
                 if (firstDecimalMode!!.roundingMode != secondDecimalMode!!.roundingMode) {
                     throw ArithmeticException("Different rounding modes! This: ${firstDecimalMode.roundingMode} Other: ${secondDecimalMode.roundingMode}")
                 }
-                val unifiedDecimalMode = if (firstDecimalMode.decimalPrecision >= secondDecimalMode.decimalPrecision) {
-                    firstDecimalMode
-                } else {
-                    secondDecimalMode
-                }
+                val unifiedDecimalMode =
+                    if (firstDecimalMode.decimalPrecision >= secondDecimalMode.decimalPrecision) {
+                        firstDecimalMode
+                    } else {
+                        secondDecimalMode
+                    }
                 unifiedDecimalMode
             }
         }
@@ -1261,7 +1282,7 @@ class BigDecimal private constructor(
      */
     fun divide(other: BigDecimal, decimalMode: DecimalMode? = null): BigDecimal {
         val resolvedDecimalMode = resolveDecimalMode(this.decimalMode, other.decimalMode, decimalMode)
-        if (resolvedDecimalMode.isPrecisionUnlimited) {
+        if (resolvedDecimalMode.isPrecisionUnlimited && resolvedDecimalMode.usingScale.not()) {
             val newExponent = this.exponent - other.exponent
             val power = (other.precision * 2 + 6)
             val thisPrepared = this.significand * BigInteger.TEN.pow(power)
@@ -1328,10 +1349,17 @@ class BigDecimal private constructor(
 
     /**
      * Quotient and remainder of **integer** division on this bigDecimal. If there is no rounding mode defined in decimal mode
-     * #RoundingMode.FLOOR will be used
+     * #RoundingMode.FLOOR will be used. Uses truncating division to determine quotient, which means that the sign of remainder will be same as sign of dividend
      */
     override fun divideAndRemainder(other: BigDecimal): Pair<BigDecimal, BigDecimal> {
-        val resolvedRoundingMode = this.decimalMode ?: DecimalMode(exponent + 1, RoundingMode.FLOOR)
+        if (exponent < 0) {
+            return Pair(ZERO, this)
+        }
+        if (other.abs() > this.abs()) {
+            return Pair(ZERO, this)
+        }
+        val resolvedRoundingMode =
+            this.decimalMode?.copy(decimalPrecision = exponent + 1) ?: DecimalMode(exponent + 1, RoundingMode.FLOOR)
         val quotient = divide(other, resolvedRoundingMode)
         val quotientInfinitePrecision = quotient.copy(decimalMode = DecimalMode.DEFAULT)
         val remainder = this - (quotientInfinitePrecision * other)
@@ -1432,16 +1460,34 @@ class BigDecimal private constructor(
 //        val exponent =
 //    }
     /**
-     * Return the this truncated by using floor rounding
+     * Return this truncated by using floor rounding
      */
     fun floor(): BigDecimal {
+        if (exponent < 0) {
+            return when (significand.sign) {
+                Sign.POSITIVE -> ZERO
+                Sign.NEGATIVE -> ONE.negate()
+                Sign.ZERO -> ZERO
+            }
+            return ZERO
+        }
         return roundSignificand(DecimalMode(exponent + 1, RoundingMode.FLOOR))
     }
 
     /**
-     * Return the this truncated by using ceil rounding
+     * Return this truncated by using ceil rounding
      */
     fun ceil(): BigDecimal {
+        if (isZero()) {
+            return ZERO
+        }
+        if (exponent < 0) {
+            return when (significand.sign) {
+                Sign.POSITIVE -> ONE
+                Sign.NEGATIVE -> ZERO
+                Sign.ZERO -> ZERO
+            }
+        }
         return roundSignificand(DecimalMode(exponent + 1, RoundingMode.CEILING))
     }
 
@@ -1461,7 +1507,7 @@ class BigDecimal private constructor(
                 significand / 10.toBigInteger().pow(precisionExponentDiff.absoluteValue - 1)
             }
             else -> {
-                significand
+                significand * 10
             }
         }
     }
@@ -1592,7 +1638,7 @@ class BigDecimal private constructor(
      * Returns a new negated instance
      */
     override fun unaryMinus(): BigDecimal {
-        return BigDecimal(significand.negate(), exponent)
+        return BigDecimal(significand.negate(), exponent, decimalMode)
     }
 
     override fun secureOverwrite() {
@@ -1628,9 +1674,14 @@ class BigDecimal private constructor(
     }
 
     /**
-     * Exponentiate this BigDecimal by some exponent
+     * Exponentiate this BigDecimal by some exponent. Note that while exponentiation with positive numbers can have
+     * infinite precision, exponentiation with negative numbers is division and as such has the same limitation
+     * as division.
      */
     override fun pow(exponent: Long): BigDecimal {
+        if (this == ZERO && exponent < 0) {
+            throw ArithmeticException("Negative exponentiation of zero is not defined.")
+        }
         var result = this
         return when {
             exponent > 0 -> {
@@ -1640,9 +1691,18 @@ class BigDecimal private constructor(
                 result
             }
             exponent < 0 -> {
-                for (i in 0..exponent.absoluteValue) {
+                if (exponent == Long.MIN_VALUE) {
+                    for (i in 0..Long.MAX_VALUE) {
+                        result /= this
+                    }
+                    // And another division beacuse min value is -9223372036854775808L and max value is 9223372036854775807L
                     result /= this
+                } else {
+                    for (i in 0..exponent.absoluteValue) {
+                        result /= this
+                    }
                 }
+
                 result
             }
             else -> {
@@ -1661,7 +1721,7 @@ class BigDecimal private constructor(
      * The next group of functions are implementations of the NarrowingOperations interface
      */
     /**
-     * Convert the current value to  Int.
+     * Convert the current value to Int.
      * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
      * precision during the conversion, either side of the decimal. False truncates any precision to
      * the right of the decimal.
@@ -1671,36 +1731,78 @@ class BigDecimal private constructor(
         return toBigInteger().intValue(exactRequired)
     }
 
+    /**
+     * Convert the current value to Long.
+     * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
+     * precision during the conversion, either side of the decimal. False truncates any precision to
+     * the right of the decimal.
+     */
     override fun longValue(exactRequired: Boolean): Long {
         checkWholeness(exactRequired)
         return toBigInteger().longValue(exactRequired)
     }
 
+    /**
+     * Convert the current value to Byte.
+     * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
+     * precision during the conversion, either side of the decimal. False truncates any precision to
+     * the right of the decimal.
+     */
     override fun byteValue(exactRequired: Boolean): Byte {
         checkWholeness(exactRequired)
         return toBigInteger().byteValue(exactRequired)
     }
 
+    /**
+     * Convert the current value to Short.
+     * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
+     * precision during the conversion, either side of the decimal. False truncates any precision to
+     * the right of the decimal.
+     */
     override fun shortValue(exactRequired: Boolean): Short {
         checkWholeness(exactRequired)
         return toBigInteger().shortValue(exactRequired)
     }
 
+    /**
+     * Convert the current value to UInt.
+     * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
+     * precision during the conversion, either side of the decimal. False truncates any precision to
+     * the right of the decimal.
+     */
     override fun uintValue(exactRequired: Boolean): UInt {
         checkWholeness(exactRequired)
         return toBigInteger().uintValue(exactRequired)
     }
 
+    /**
+     * Convert the current value to ULong.
+     * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
+     * precision during the conversion, either side of the decimal. False truncates any precision to
+     * the right of the decimal.
+     */
     override fun ulongValue(exactRequired: Boolean): ULong {
         checkWholeness(exactRequired)
         return toBigInteger().ulongValue(exactRequired)
     }
 
+    /**
+     * Convert the current value to UByte.
+     * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
+     * precision during the conversion, either side of the decimal. False truncates any precision to
+     * the right of the decimal.
+     */
     override fun ubyteValue(exactRequired: Boolean): UByte {
         checkWholeness(exactRequired)
         return toBigInteger().ubyteValue(exactRequired)
     }
 
+    /**
+     * Convert the current value to UShort.
+     * @param exactRequired True causes an ArithmeticException to be thrown if there is any loss of
+     * precision during the conversion, either side of the decimal. False truncates any precision to
+     * the right of the decimal.
+     */
     override fun ushortValue(exactRequired: Boolean): UShort {
         checkWholeness(exactRequired)
         return toBigInteger().ushortValue(exactRequired)
@@ -1710,7 +1812,9 @@ class BigDecimal private constructor(
      * @return true if "this" is a whole number, false if not
      */
     fun isWholeNumber(): Boolean {
-        return abs().divrem(ONE).second.isZero()
+        val res = abs().divrem(ONE)
+        val isWholeNumber = res.second.isZero()
+        return isWholeNumber
     }
 
     /**
@@ -1753,7 +1857,8 @@ class BigDecimal private constructor(
                 val integerPartBitLength = chosenArithmetic.bitLength(integerPart.magnitude)
 
                 val fractionPart = (significand divrem BigInteger.TEN.pow(precision - exponent - 1)).remainder
-                var fractionConvertTemp = BigDecimal(fractionPart, -1) // this will represent the integer xxxx as 0.xxxx
+                var fractionConvertTemp =
+                    BigDecimal(fractionPart, -1) // this will represent the integer xxxx as 0.xxxx
                 val bitList = mutableListOf<Int>()
                 var counter = 0
                 while (fractionConvertTemp != ZERO && counter <= 24) {
@@ -1832,7 +1937,8 @@ class BigDecimal private constructor(
                 val integerPartBitLength = chosenArithmetic.bitLength(integerPart.magnitude)
 
                 val fractionPart = (significand divrem BigInteger.TEN.pow(precision - exponent - 1)).remainder
-                var fractionConvertTemp = BigDecimal(fractionPart, -1) // this will represent the integer xxxx as 0.xxxx
+                var fractionConvertTemp =
+                    BigDecimal(fractionPart, -1) // this will represent the integer xxxx as 0.xxxx
                 val bitList = mutableListOf<Int>()
                 var counter = 0
                 while (fractionConvertTemp != ZERO && counter <= 53) {
@@ -1876,8 +1982,11 @@ class BigDecimal private constructor(
          */
         val divExponent = precision - 1 - exponent
         val l = this.significand.longValue(exactRequired)
+        if (this.significand > Long.MAX_VALUE || this.significand < Long.MIN_VALUE) {
+            return toString().toDouble()
+        }
         return if (l.toDouble().toLong() == l && divExponent >= 0 && divExponent < double10pow.size) {
-            (l / double10pow[divExponent.toInt()]) * signum()
+            (l / double10pow[divExponent.toInt()])
         } else {
             toString().toDouble()
         }
@@ -2030,7 +2139,7 @@ class BigDecimal private constructor(
 
     override fun compareTo(other: Any): Int {
         if (other is Number) {
-            if (ComparisonWorkaround.isSpecialHandlingForFloatNeeded(other)) {
+            if (RuntimePlatform.currentPlatform() == Platform.JS) {
                 return javascriptNumberComparison(other)
             }
         }
@@ -2051,10 +2160,13 @@ class BigDecimal private constructor(
      * to check if it's a decimal or integer number before comparing.
      */
     private fun javascriptNumberComparison(number: Number): Int {
-        val float = number.toFloat()
+        val double = number.toDouble()
         return when {
-            float % 1 == 0f -> compare(fromLong(number.toLong()))
-            else -> compare(number.toFloat().toBigDecimal())
+            double > Long.MAX_VALUE -> {
+                compare(parseString(double.toString()))
+            } // This whole block can be removed after 1.6.20 and https://github.com/JetBrains/kotlin/pull/4364
+            double % 1 == 0.0 -> compare(fromLong(number.toLong()))
+            else -> compare(number.toDouble().toBigDecimal())
         }
     }
 
@@ -2133,7 +2245,25 @@ class BigDecimal private constructor(
      * Convenience method matching Java BigDecimal, same functionality as toStringExpanded
      */
     fun toPlainString(): String {
-        return toStringExpanded()
+        // TODO this is a naive and inefficient implementation, it would be better to consider scale before the
+        // string is expanded.
+        val expandedString = toStringExpanded()
+        val finalString = if (usingScale && scale > 0) {
+            val split = expandedString.split(".")
+            if (split.size == 1) {
+                expandedString + "." + '0' * scale
+            } else {
+                val missingZeroCount = scale - split[1].length
+                if (missingZeroCount > 0) {
+                    expandedString + '0' * missingZeroCount
+                } else {
+                    expandedString
+                }
+            }
+        } else {
+            expandedString
+        }
+        return finalString
     }
 
     /**
@@ -2172,7 +2302,10 @@ class BigDecimal private constructor(
 
                 if (diffInt > 0) {
                     val expandZeros = exponent.absoluteValue * '0'
-                    placeADotInStringExpanded(expandZeros + significandString, diffInt + significandString.length - 1)
+                    placeADotInStringExpanded(
+                        expandZeros + significandString,
+                        diffInt + significandString.length - 1
+                    )
                 } else {
                     placeADotInStringExpanded(significandString, significandString.length - 1)
                 }

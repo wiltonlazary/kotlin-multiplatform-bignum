@@ -59,7 +59,7 @@ repositories {
     google()
 }
 group = "com.ionspin.kotlin"
-version = "0.3.2-SNAPSHOT"
+version = projectVersion
 
 val ideaActive = System.getProperty("idea.active") == "true"
 
@@ -90,14 +90,13 @@ kotlin {
             compilations {
                 this.forEach {
                     it.compileKotlinTask.kotlinOptions.sourceMap = true
-                    it.compileKotlinTask.kotlinOptions.moduleKind = "commonjs"
                     it.compileKotlinTask.kotlinOptions.metaInfo = true
 
                     if (it.name == "main") {
                         it.compileKotlinTask.kotlinOptions.main = "call"
                     }
                     println("Compilation name ${it.name} set")
-                    println("Destination dir ${it.compileKotlinTask.destinationDir}")
+                    println("Destination dir ${it.compileKotlinTask.destinationDirectory}")
                 }
                 nodejs()
                 browser() {
@@ -112,95 +111,36 @@ kotlin {
     }
 
     if (hostOs == HostOs.LINUX) {
-
-        linuxX64("linux") {
-            binaries {
-                staticLib {
-                }
-            }
-        }
-
+        linuxX64("linux")
         if (ideaActive.not()) {
-            linuxArm32Hfp() {
-                binaries {
-                    staticLib {
-                    }
-                }
-            }
-
-            linuxArm64() {
-                binaries {
-                    staticLib {
-                    }
-                }
-            }
-        }
-    }
-//
-    iosX64("ios") {
-        binaries {
-            framework {
-            }
-        }
-    }
-    iosArm64("ios64Arm") {
-        binaries {
-            framework {
-            }
+            linuxMipsel32()
+            linuxMips32()
+            linuxArm32Hfp()
+            linuxArm64()
+            androidNativeX64()
+            androidNativeX86()
+            androidNativeArm32()
+            androidNativeArm64()
         }
     }
 
-    iosArm32("ios32Arm") {
-        binaries {
-            framework {
-            }
-        }
-    }
-    macosX64() {
-        binaries {
-            framework {
-            }
-        }
-    }
-
-    tvos() {
-        binaries {
-            framework {
-            }
-        }
-    }
+    iosX64()
+    iosArm64()
+    iosArm32()
+    iosSimulatorArm64()
+    macosX64()
+    macosArm64()
+    tvos()
+    tvosSimulatorArm64()
     if (ideaActive.not()) {
-        watchos() {
-            binaries {
-                framework {
-                }
-            }
-        }
+        watchos()
+        watchosSimulatorArm64()
     }
-
-    watchosX86() {
-        binaries {
-            framework {
-            }
-        }
-    }
-
-    mingwX64() {
-        binaries {
-            staticLib {
-            }
-        }
-    }
+    watchosX86()
+    mingwX64()
     if (ideaActive.not()) {
-        mingwX86() {
-            binaries {
-                staticLib {
-                }
-            }
-        }
+        mingwX86()
     }
-
-    println(targets.names)
 
     sourceSets {
         val commonMain by getting {
@@ -211,8 +151,9 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin(Deps.Common.test))
+                implementation(Deps.Common.testCoroutines)
                 implementation(kotlin(Deps.Common.testAnnotation))
-                implementation(Deps.Common.coroutinesMT)
+                implementation(Deps.Common.coroutines)
             }
         }
 
@@ -291,27 +232,75 @@ kotlin {
                 val linuxArm64Test by getting {
                     dependsOn(nativeTest)
                 }
+
+                val linuxMipsel32Main by getting {
+                    dependsOn(nativeMain)
+                }
+
+                val linuxMipsel32Test by getting {
+                    dependsOn(nativeTest)
+                }
+
+                val linuxMips32Main by getting {
+                    dependsOn(nativeMain)
+                }
+
+                val linuxMips32Test by getting {
+                    dependsOn(nativeTest)
+                }
+
+                val androidNativeX64Main by getting {
+                    dependsOn(nativeMain)
+                }
+
+                val androidNativeX64Test by getting {
+                    dependsOn(nativeTest)
+                }
+
+                val androidNativeX86Main by getting {
+                    dependsOn(nativeMain)
+                }
+
+                val androidNativeX86Test by getting {
+                    dependsOn(nativeTest)
+                }
+
+                val androidNativeArm32Main by getting {
+                    dependsOn(nativeMain)
+                }
+
+                val androidNativeArm32Test by getting {
+                    dependsOn(nativeTest)
+                }
+
+                val androidNativeArm64Main by getting {
+                    dependsOn(nativeMain)
+                }
+
+                val androidNativeArm64Test by getting {
+                    dependsOn(nativeTest)
+                }
             }
         }
 
-        val iosMain by getting {
+        val iosX64Main by getting {
             dependsOn(nativeMain)
         }
-        val iosTest by getting {
+        val iosX64Test by getting {
             dependsOn(nativeTest)
         }
 
-        val ios64ArmMain by getting {
+        val iosArm64Main by getting {
             dependsOn(nativeMain)
         }
-        val ios64ArmTest by getting {
+        val iosArm64Test by getting {
             dependsOn(nativeTest)
         }
 
-        val ios32ArmMain by getting {
+        val iosArm32Main by getting {
             dependsOn(nativeMain)
         }
-        val ios32ArmTest by getting {
+        val iosArm32Test by getting {
             dependsOn(nativeTest)
         }
 
@@ -328,6 +317,25 @@ kotlin {
         val tvosTest by getting {
             dependsOn(nativeTest)
         }
+
+        val iosSimulatorArm64Main by sourceSets.getting
+        val iosSimulatorArm64Test by sourceSets.getting
+
+        iosSimulatorArm64Main.dependsOn(nativeMain)
+        iosSimulatorArm64Test.dependsOn(nativeTest)
+
+        val macosArm64Main by sourceSets.getting
+        val macosArm64Test by sourceSets.getting
+
+        macosArm64Main.dependsOn(nativeMain)
+        macosArm64Test.dependsOn(nativeTest)
+
+        val tvosSimulatorArm64Main by sourceSets.getting
+        val tvosSimulatorArm64Test by sourceSets.getting
+
+        tvosSimulatorArm64Main.dependsOn(nativeMain)
+        tvosSimulatorArm64Test.dependsOn(nativeTest)
+
         if (ideaActive.not()) {
             val watchosMain by getting {
                 dependsOn(nativeMain)
@@ -336,6 +344,12 @@ kotlin {
             val watchosTest by getting {
                 dependsOn(nativeTest)
             }
+
+            val watchosSimulatorArm64Main by sourceSets.getting
+            val watchosSimulatorArm64Test by sourceSets.getting
+
+            watchosSimulatorArm64Main.dependsOn(nativeMain)
+            watchosSimulatorArm64Test.dependsOn(nativeTest)
         }
 
         val watchosX86Main by getting {
@@ -366,8 +380,8 @@ kotlin {
 
         all {
             languageSettings.enableLanguageFeature("InlineClasses")
-            languageSettings.useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes")
-            languageSettings.useExperimentalAnnotation("kotlin.ExperimentalStdlibApi")
+            languageSettings.optIn("kotlin.ExperimentalUnsignedTypes")
+            languageSettings.optIn("kotlin.ExperimentalStdlibApi")
         }
     }
 }
@@ -394,6 +408,7 @@ tasks {
         val jvmTest by getting(Test::class) {
             testLogging {
                 events("PASSED", "FAILED", "SKIPPED")
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
             }
         }
 

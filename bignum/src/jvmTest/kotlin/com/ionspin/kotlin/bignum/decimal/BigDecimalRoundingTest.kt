@@ -21,6 +21,7 @@ import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -722,7 +723,12 @@ class BigDecimalRoundingTest {
             )
         }
         runBlocking {
-            jobList.forEach { it.join() }
+            jobList.forEach {
+                if (it.isCancelled) {
+                    fail("Some of the tests failed")
+                }
+                it.join()
+            }
         }
     }
 
@@ -734,7 +740,7 @@ class BigDecimalRoundingTest {
         val jvmB = bigNumB.toJavaBigDecimal()
         val jvmResult = jvmA.divide(jvmB, scale, jvmRoundingMode)
         val bigNumResult = bigNumA.divide(bigNumB, DecimalMode(scale + 100L, bigNumRoundingMode, scale.toLong()))
-        assertEquals(bigNumResult.toPlainString(), jvmResult.stripTrailingZeros().toPlainString())
+        assertEquals(bigNumResult.toPlainString(), jvmResult.toPlainString())
     }
 
     fun RoundingMode.toJvmRoundingMode(): java.math.RoundingMode {
@@ -773,7 +779,7 @@ class BigDecimalRoundingTest {
             val a = "1.1000000000"
             val bignum = a.toBigDecimal(decimalMode = DecimalMode(20, mode.toBigNumRoundingMode(), 3))
             val jvm = java.math.BigDecimal(a).setScale(3, mode)
-            assertEquals(bignum.toPlainString(), jvm.stripTrailingZeros().toPlainString())
+            assertEquals(bignum.toPlainString(), jvm.toPlainString())
         }
     }
 }
