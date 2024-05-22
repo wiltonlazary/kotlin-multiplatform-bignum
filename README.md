@@ -23,11 +23,20 @@ Testing to verify that the library works properly is mostly done against Java Bi
 The library is still under development, but at the moment it is feature complete, further improvements will be optimizations
 and bug-fixing. 
 
+### WASM
+
+WASM platform is experimental, use with caution. Note that currently wasm returns a value after converting to IEEE-754 number, unlike
+other platforms (JVM, JS, Native), so if you use:
+```kotlin
+val a = BigDecimal.fromFloat(0.000000000000123f)
+```
+expect `a` to be `1.2299999885799495E-13`.
+
 ## Integration
 
 #### Gradle
 ```kotlin
-implementation("com.ionspin.kotlin:bignum:0.3.7")
+implementation("com.ionspin.kotlin:bignum:0.3.9")
 ```
 
 #### Snapshot builds
@@ -37,7 +46,7 @@ repositories {
         url = uri("https://oss.sonatype.org/content/repositories/snapshots")
     }
 }
-implementation("com.ionspin.kotlin:bignum:0.3.8-SNAPSHOT")
+implementation("com.ionspin.kotlin:bignum:0.3.10-SNAPSHOT")
 
 ```
 
@@ -484,7 +493,7 @@ ModularBigInteger: 50 mod 100
 
 ```
 
-Otherwise behavior is similar to normal integers
+Otherwise, behavior is similar to normal integers
 
 
 ### Sources

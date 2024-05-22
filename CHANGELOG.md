@@ -1,8 +1,22 @@
 ## Descriptive changelog
 (All dates are DD.MM.YYYY)
 
-##### 0.3.8-SNAPSHOT - current snapshot
+##### 0.3.10-SNAPSHOT - current snapshot
+- Fix for #280, return byte array containing zero instead of empty array when big integer is zero.
 
+##### 0.3.9 - 28.1.2024
+- Bump to kotlin 1.9.21
+- Expanded BigInteger API to expose bitLength as proposed by #254
+- Added wasm-js target
+- Fix for #269, thanks to @CodeServant
+- Fix for #276, BigDecimal divrem was not rounding properly
+- Fix for #277, round half to even was wrong when exponent was 0
+
+##### 0.3.8 - 11.2.2023
+- Bump to Kotlin 1.8.10
+- Fix for #253, empty string is not a valid floating point number any more and parsing it throws ArithmeticException
+- Fix for #245, division test failures run in coroutines were ignored.
+- 
 ##### 0.3.7 - 6.8.2022
 - Bump to Kotlin 1.7.10
 - Fix for #239, toPlainString which was supposed to return same result as JVM was truncating zeroes when scale was used. 

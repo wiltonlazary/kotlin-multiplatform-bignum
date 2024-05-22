@@ -1,2 +1,2 @@
-./gradlew publishMingwX64PublicationToMavenRepository publishMingwX86PublicationToMavenRepository
+./gradlew --no-daemon publishMingwX64PublicationToMavenRepository -x spotlessKotlinCheck -x spotlessKotlinGradleCheck
 ./gradlew --stop

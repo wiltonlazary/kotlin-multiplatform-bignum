@@ -16,13 +16,13 @@
  */
 
 object Versions {
-    val kotlinCoroutines = "1.6.3"
-    val kotlin = "1.7.10"
-    val kotlinSerialization = "1.3.3"
-    val dokkaPlugin = "1.7.10"
+    val kotlinCoroutines = "1.8.0-RC2"
+    val kotlin = "1.9.21"
+    val kotlinSerialization = "1.6.2"
+    val dokkaPlugin = "1.9.10"
 }
 
-val projectVersion = "0.3.8-SNAPSHOT"
+val projectVersion = "0.3.10-SNAPSHOT"
 
 object Deps {
 
@@ -63,15 +63,20 @@ object Deps {
         val coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.kotlinCoroutines}"
     }
 
+    object WasmJs {
+        val stdLib = "stdlib-wasm-js"
+        val test = "test-wasm-js"
+    }
+
     object Project {
         val bignum = ":bignum"
     }
 }
 
 object PluginsDeps {
-    object Versions {
+    object PluginVersions {
         val spotlessVersion = "5.14.0"
-        val kotlinxSerialization = "1.5.0"
+        val kotlinxSerialization = Versions.kotlin
     }
 
 

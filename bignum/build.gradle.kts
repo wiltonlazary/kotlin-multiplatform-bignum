@@ -22,7 +22,7 @@ plugins {
     id(PluginsDeps.mavenPublish)
     id(PluginsDeps.signing)
     id(PluginsDeps.dokka)
-    id(PluginsDeps.spotless) version PluginsDeps.Versions.spotlessVersion
+    id(PluginsDeps.spotless) version PluginsDeps.PluginVersions.spotlessVersion
 }
 
 val sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
@@ -108,13 +108,15 @@ kotlin {
                 }
             }
         }
+
+        wasmJs {
+            browser()
+        }
     }
 
     if (hostOs == HostOs.LINUX) {
         linuxX64("linux")
         if (ideaActive.not()) {
-            linuxMipsel32()
-            linuxMips32()
             linuxArm32Hfp()
             linuxArm64()
             androidNativeX64()
@@ -126,7 +128,6 @@ kotlin {
 
     iosX64()
     iosArm64()
-    iosArm32()
     iosSimulatorArm64()
     macosX64()
     macosArm64()
@@ -136,11 +137,7 @@ kotlin {
         watchos()
         watchosSimulatorArm64()
     }
-    watchosX86()
     mingwX64()
-    if (ideaActive.not()) {
-        mingwX86()
-    }
 
     sourceSets {
         val commonMain by getting {
@@ -204,6 +201,17 @@ kotlin {
                     implementation(kotlin(Deps.Js.test))
                 }
             }
+
+            val wasmJsMain by getting {
+                dependencies {
+                    implementation(kotlin(Deps.WasmJs.stdLib))
+                }
+            }
+            val wasmJsTest by getting {
+                dependencies {
+                    implementation(kotlin(Deps.WasmJs.test))
+                }
+            }
         }
 
         if (hostOs == HostOs.LINUX) {
@@ -230,22 +238,6 @@ kotlin {
                 }
 
                 val linuxArm64Test by getting {
-                    dependsOn(nativeTest)
-                }
-
-                val linuxMipsel32Main by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val linuxMipsel32Test by getting {
-                    dependsOn(nativeTest)
-                }
-
-                val linuxMips32Main by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val linuxMips32Test by getting {
                     dependsOn(nativeTest)
                 }
 
@@ -297,13 +289,6 @@ kotlin {
             dependsOn(nativeTest)
         }
 
-        val iosArm32Main by getting {
-            dependsOn(nativeMain)
-        }
-        val iosArm32Test by getting {
-            dependsOn(nativeTest)
-        }
-
         val macosX64Main by getting {
             dependsOn(nativeMain)
         }
@@ -352,14 +337,6 @@ kotlin {
             watchosSimulatorArm64Test.dependsOn(nativeTest)
         }
 
-        val watchosX86Main by getting {
-            dependsOn(nativeMain)
-        }
-
-        val watchosX86Test by getting {
-            dependsOn(nativeTest)
-        }
-
         val mingwX64Main by getting {
             dependsOn(nativeMain)
         }
@@ -367,16 +344,6 @@ kotlin {
         val mingwX64Test by getting {
             dependsOn(nativeTest)
         }
-
-    if (ideaActive.not()) {
-        val mingwX86Main by getting {
-            dependsOn(nativeMain)
-        }
-
-        val mingwX86Test by getting {
-            dependsOn(nativeTest)
-        }
-    }
 
         all {
             languageSettings.enableLanguageFeature("InlineClasses")
