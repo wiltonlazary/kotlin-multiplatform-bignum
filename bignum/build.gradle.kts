@@ -38,18 +38,7 @@ enum class HostOs {
 
 val bignumPrimaryDevelopmentOs: String? by project
 
-val primaryDevelopmentOs: HostOs = if (bignumPrimaryDevelopmentOs != null) {
-    println("Selected dev OS: $bignumPrimaryDevelopmentOs")
-    when (bignumPrimaryDevelopmentOs) {
-        "linux" -> HostOs.LINUX
-        "windows" -> HostOs.WINDOWS
-        "mac" -> HostOs.MAC
-        else -> throw org.gradle.api.GradleException("Invalid development enviromoment OS selecte: " +
-                "$bignumPrimaryDevelopmentOs. Only linux, windows and mac are supported at the moment")
-    }
-} else {
-    HostOs.LINUX
-}
+val hostOs = getHostOsName()
 
 val sonatypePasswordEnv: String? = System.getenv()["SONATYPE_PASSWORD"]
 val sonatypeUsernameEnv: String? = System.getenv()["SONATYPE_USERNAME"]
@@ -72,78 +61,56 @@ fun getHostOsName(): HostOs {
 }
 
 kotlin {
-
-    val hostOs = getHostOsName()
-    println("Host os name $hostOs")
-
-    if (ideaActive) {
-        when (hostOs) {
-            HostOs.LINUX -> linuxX64("native")
-            HostOs.MAC -> macosX64("native")
-            HostOs.WINDOWS -> mingwX64("native")
-        }
-    }
-    if (hostOs == primaryDevelopmentOs) {
-        jvm()
-
-        js {
-            compilations {
-                this.forEach {
-                    it.compileKotlinTask.kotlinOptions.sourceMap = true
-                    it.compileKotlinTask.kotlinOptions.metaInfo = true
-
+    jvm()
+    js {
+        compilations {
+            this.forEach {
+                it.compileTaskProvider.configure {
+                    kotlinOptions.sourceMap = true
+                    kotlinOptions.metaInfo = true
                     if (it.name == "main") {
-                        it.compileKotlinTask.kotlinOptions.main = "call"
+                        kotlinOptions.main = "call"
                     }
-                    println("Compilation name ${it.name} set")
-                    println("Destination dir ${it.compileKotlinTask.destinationDirectory}")
                 }
-                nodejs()
-                browser() {
-                    testTask {
-                        useKarma {
-                            useChromeHeadless()
-                        }
+            }
+            nodejs()
+            browser() {
+                testTask {
+                    useKarma {
+                        useChromeHeadless()
                     }
                 }
             }
         }
-
-        wasmJs {
-            browser()
-        }
     }
-
-    if (hostOs == HostOs.LINUX) {
-        linuxX64("linux")
-        if (ideaActive.not()) {
-            linuxArm32Hfp()
-            linuxArm64()
-            androidNativeX64()
-            androidNativeX86()
-            androidNativeArm32()
-            androidNativeArm64()
-        }
-    }
-
+    linuxX64()
+    linuxArm64()
+    androidNativeX64()
+    androidNativeX86()
+    androidNativeArm32()
+    androidNativeArm64()
     iosX64()
     iosArm64()
     iosSimulatorArm64()
     macosX64()
     macosArm64()
-    tvos()
+    tvosArm64()
     tvosSimulatorArm64()
-    if (ideaActive.not()) {
-        watchos()
-        watchosSimulatorArm64()
-    }
+    tvosX64()
+    watchosArm32()
+    watchosArm64()
+    watchosDeviceArm64()
+    watchosX64()
+    watchosSimulatorArm64()
     mingwX64()
+    wasmJs {
+        browser()
+    }
+    wasmWasi()
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(kotlin(Deps.Common.stdLib))
-            }
+        commonMain.dependencies {
+            implementation(kotlin(Deps.Common.stdLib))
         }
         val commonTest by getting {
             dependencies {
@@ -154,199 +121,30 @@ kotlin {
             }
         }
 
-        val nativeMain = if (ideaActive) {
-            val nativeMain by getting {
-                dependsOn(commonMain)
-            }
-            nativeMain
-        } else {
-            val nativeMain by creating {
-                dependsOn(commonMain)
-            }
-            nativeMain
+        jvmMain.dependencies {
+            implementation(kotlin(Deps.Jvm.stdLib))
         }
-        val nativeTest = if (ideaActive) {
-            val nativeTest by getting {
-                dependsOn(commonTest)
-            }
-            nativeTest
-        } else {
-            val nativeTest by creating {
-                dependsOn(commonTest)
-            }
-            nativeTest
+        jvmTest.dependencies {
+            implementation(kotlin(Deps.Jvm.test))
+            implementation(kotlin(Deps.Jvm.testJUnit))
+            implementation(kotlin(Deps.Jvm.reflection))
+        }
+        jsMain.dependencies {
+            implementation(kotlin(Deps.Js.stdLib))
+        }
+        jsTest.dependencies {
+            implementation(kotlin(Deps.Js.test))
         }
 
-        if (hostOs == primaryDevelopmentOs) {
-            val jvmMain by getting {
-                dependencies {
-                    implementation(kotlin(Deps.Jvm.stdLib))
-                }
+        val wasmJsTest by getting {
+            dependencies {
+                implementation(kotlin(Deps.WasmJs.test))
             }
-            val jvmTest by getting {
-                dependencies {
-                    implementation(kotlin(Deps.Jvm.test))
-                    implementation(kotlin(Deps.Jvm.testJUnit))
-                    implementation(kotlin(Deps.Jvm.reflection))
-                }
-            }
-
-            val jsMain by getting {
-                dependencies {
-                    implementation(kotlin(Deps.Js.stdLib))
-                }
-            }
-            val jsTest by getting {
-                dependencies {
-                    implementation(kotlin(Deps.Js.test))
-                }
-            }
-
-            val wasmJsMain by getting {
-                dependencies {
-                    implementation(kotlin(Deps.WasmJs.stdLib))
-                }
-            }
-            val wasmJsTest by getting {
-                dependencies {
-                    implementation(kotlin(Deps.WasmJs.test))
-                }
-            }
-        }
-
-        if (hostOs == HostOs.LINUX) {
-
-            val linuxMain by getting {
-                dependsOn(nativeMain)
-            }
-            val linuxTest by getting {
-                dependsOn(nativeTest)
-            }
-
-            if (ideaActive.not()) {
-
-                val linuxArm32HfpMain by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val linuxArm32HfpTest by getting {
-                    dependsOn(nativeTest)
-                }
-
-                val linuxArm64Main by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val linuxArm64Test by getting {
-                    dependsOn(nativeTest)
-                }
-
-                val androidNativeX64Main by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val androidNativeX64Test by getting {
-                    dependsOn(nativeTest)
-                }
-
-                val androidNativeX86Main by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val androidNativeX86Test by getting {
-                    dependsOn(nativeTest)
-                }
-
-                val androidNativeArm32Main by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val androidNativeArm32Test by getting {
-                    dependsOn(nativeTest)
-                }
-
-                val androidNativeArm64Main by getting {
-                    dependsOn(nativeMain)
-                }
-
-                val androidNativeArm64Test by getting {
-                    dependsOn(nativeTest)
-                }
-            }
-        }
-
-        val iosX64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val iosX64Test by getting {
-            dependsOn(nativeTest)
-        }
-
-        val iosArm64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val iosArm64Test by getting {
-            dependsOn(nativeTest)
-        }
-
-        val macosX64Main by getting {
-            dependsOn(nativeMain)
-        }
-        val macosX64Test by getting {
-            dependsOn(nativeTest)
-        }
-
-        val tvosMain by getting {
-            dependsOn(nativeMain)
-        }
-        val tvosTest by getting {
-            dependsOn(nativeTest)
-        }
-
-        val iosSimulatorArm64Main by sourceSets.getting
-        val iosSimulatorArm64Test by sourceSets.getting
-
-        iosSimulatorArm64Main.dependsOn(nativeMain)
-        iosSimulatorArm64Test.dependsOn(nativeTest)
-
-        val macosArm64Main by sourceSets.getting
-        val macosArm64Test by sourceSets.getting
-
-        macosArm64Main.dependsOn(nativeMain)
-        macosArm64Test.dependsOn(nativeTest)
-
-        val tvosSimulatorArm64Main by sourceSets.getting
-        val tvosSimulatorArm64Test by sourceSets.getting
-
-        tvosSimulatorArm64Main.dependsOn(nativeMain)
-        tvosSimulatorArm64Test.dependsOn(nativeTest)
-
-        if (ideaActive.not()) {
-            val watchosMain by getting {
-                dependsOn(nativeMain)
-            }
-
-            val watchosTest by getting {
-                dependsOn(nativeTest)
-            }
-
-            val watchosSimulatorArm64Main by sourceSets.getting
-            val watchosSimulatorArm64Test by sourceSets.getting
-
-            watchosSimulatorArm64Main.dependsOn(nativeMain)
-            watchosSimulatorArm64Test.dependsOn(nativeTest)
-        }
-
-        val mingwX64Main by getting {
-            dependsOn(nativeMain)
-        }
-
-        val mingwX64Test by getting {
-            dependsOn(nativeTest)
         }
 
         all {
             languageSettings.enableLanguageFeature("InlineClasses")
+            languageSettings.optIn("expect-actual-classes")
             languageSettings.optIn("kotlin.ExperimentalUnsignedTypes")
             languageSettings.optIn("kotlin.ExperimentalStdlibApi")
         }
@@ -367,51 +165,155 @@ tasks {
     }
 
     dokkaHtml {
-        println("Dokka !")
         dokkaSourceSets {
         }
     }
-    if (hostOsName == primaryDevelopmentOs) {
-        val jvmTest by getting(Test::class) {
-            testLogging {
-                events("PASSED", "FAILED", "SKIPPED")
-                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+
+    val jvmTest by getting(Test::class) {
+        testLogging {
+            events("PASSED", "FAILED", "SKIPPED")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+
+    all {
+        if (hostOs == HostOs.LINUX) {
+            // Linux task dependecies
+
+            // @formatter:off
+            if (this.name.equals("signAndroidNativeArm32Publication")) { this.mustRunAfter("signAndroidNativeArm64Publication") }
+            if (this.name.equals("signAndroidNativeArm64Publication")) { this.mustRunAfter("signAndroidNativeX64Publication") }
+            if (this.name.equals("signAndroidNativeX64Publication")) { this.mustRunAfter("signAndroidNativeX86Publication") }
+            if (this.name.equals("signAndroidNativeX86Publication")) { this.mustRunAfter("signJsPublication") }
+            if (this.name.equals("signJsPublication")) { this.mustRunAfter("signJvmPublication") }
+            if (this.name.equals("signJvmPublication")) { this.mustRunAfter("signKotlinMultiplatformPublication") }
+            if (this.name.equals("signKotlinMultiplatformPublication")) { this.mustRunAfter("signLinuxArm64Publication") }
+            if (this.name.equals("signLinuxArm64Publication")) { this.mustRunAfter("signLinuxX64Publication") }
+            if (this.name.equals("signLinuxX64Publication")) { this.mustRunAfter("signWasmJsPublication") }
+            if (this.name.equals("signWasmJsPublication")) { this.mustRunAfter("signWasmWasiPublication") }
+            // @formatter:on
+
+            if (this.name.startsWith("publish")) {
+                this.mustRunAfter("signAndroidNativeArm32Publication")
+                this.mustRunAfter("signAndroidNativeArm64Publication")
+                this.mustRunAfter("signAndroidNativeX64Publication")
+                this.mustRunAfter("signAndroidNativeX86Publication")
+                this.mustRunAfter("signJsPublication")
+                this.mustRunAfter("signJvmPublication")
+                this.mustRunAfter("signKotlinMultiplatformPublication")
+                this.mustRunAfter("signLinuxArm64Publication")
+                this.mustRunAfter("signLinuxX64Publication")
+                this.mustRunAfter("signWasmJsPublication")
+                this.mustRunAfter("signWasmWasiPublication")
+            }
+
+            if (this.name.startsWith("compileTest")) {
+                this.mustRunAfter("signAndroidNativeArm32Publication")
+                this.mustRunAfter("signAndroidNativeArm64Publication")
+                this.mustRunAfter("signAndroidNativeX64Publication")
+                this.mustRunAfter("signAndroidNativeX86Publication")
+                this.mustRunAfter("signJsPublication")
+                this.mustRunAfter("signJvmPublication")
+                this.mustRunAfter("signKotlinMultiplatformPublication")
+                this.mustRunAfter("signLinuxArm64Publication")
+                this.mustRunAfter("signLinuxX64Publication")
+                this.mustRunAfter("signWasmJsPublication")
+                this.mustRunAfter("signWasmWasiPublication")
+            }
+
+            if (this.name.startsWith("linkDebugTest")) {
+                this.mustRunAfter("signAndroidNativeArm32Publication")
+                this.mustRunAfter("signAndroidNativeArm64Publication")
+                this.mustRunAfter("signAndroidNativeX64Publication")
+                this.mustRunAfter("signAndroidNativeX86Publication")
+                this.mustRunAfter("signJsPublication")
+                this.mustRunAfter("signJvmPublication")
+                this.mustRunAfter("signKotlinMultiplatformPublication")
+                this.mustRunAfter("signLinuxArm64Publication")
+                this.mustRunAfter("signLinuxX64Publication")
+                this.mustRunAfter("signWasmJsPublication")
+                this.mustRunAfter("signWasmWasiPublication")
             }
         }
 
-//        val jsIrNodeTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
-//            testLogging {
-//                events("PASSED", "FAILED", "SKIPPED")
-//            }
-//        }
-//
-//        val jsIrBrowserTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
-//            testLogging {
-//                events("PASSED", "FAILED", "SKIPPED")
-//            }
-//        }
-//
-//        val jsLegacyNodeTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
-//            testLogging {
-//                events("PASSED", "FAILED", "SKIPPED")
-//            }
-//        }
-//
-//        val jsLegacyBrowserTest by getting(org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest::class) {
-//            testLogging {
-//                events("PASSED", "FAILED", "SKIPPED")
-//            }
-//        }
+        if (hostOs == HostOs.MAC) {
+            // Macos task dependencies
+            // @formatter:off
+            if (this.name.equals("signIosArm64Publication")) { this.mustRunAfter("signIosSimulatorArm64Publication") }
+            if (this.name.equals("signIosSimulatorArm64Publication")) { this.mustRunAfter("signIosX64Publication") }
+            if (this.name.equals("signIosX64Publication")) { this.mustRunAfter("signMacosArm64Publication") }
+            if (this.name.equals("signMacosArm64Publication")) { this.mustRunAfter("signMacosX64Publication") }
+            if (this.name.equals("signMacosX64Publication")) { this.mustRunAfter("signTvosArm64Publication") }
+            if (this.name.equals("signTvosArm64Publication")) { this.mustRunAfter("signTvosSimulatorArm64Publication") }
+            if (this.name.equals("signTvosSimulatorArm64Publication")) { this.mustRunAfter("signTvosX64Publication") }
+            if (this.name.equals("signTvosX64Publication")) { this.mustRunAfter("signWatchosArm32Publication") }
+            if (this.name.equals("signWatchosArm32Publication")) { this.mustRunAfter("signWatchosArm64Publication") }
+            if (this.name.equals("signWatchosArm64Publication")) { this.mustRunAfter("signWatchosDeviceArm64Publication") }
+            if (this.name.equals("signWatchosDeviceArm64Publication")) { this.mustRunAfter("signWatchosSimulatorArm64Publication") }
+            if (this.name.equals("signWatchosSimulatorArm64Publication")) { this.mustRunAfter("signWatchosX64Publication") }
+            // @formatter:on
+
+            if (this.name.startsWith("publish")) {
+                this.mustRunAfter("signIosArm64Publication")
+                this.mustRunAfter("signIosArm64Publication")
+                this.mustRunAfter("signIosSimulatorArm64Publication")
+                this.mustRunAfter("signIosX64Publication")
+                this.mustRunAfter("signMacosArm64Publication")
+                this.mustRunAfter("signMacosX64Publication")
+                this.mustRunAfter("signTvosArm64Publication")
+                this.mustRunAfter("signTvosSimulatorArm64Publication")
+                this.mustRunAfter("signTvosX64Publication")
+                this.mustRunAfter("signWatchosArm32Publication")
+                this.mustRunAfter("signWatchosArm64Publication")
+                this.mustRunAfter("signWatchosDeviceArm64Publication")
+                this.mustRunAfter("signWatchosSimulatorArm64Publication")
+                this.mustRunAfter("signWatchosX64Publication")
+            }
+
+            if (this.name.startsWith("compileTest")) {
+                this.mustRunAfter("signIosArm64Publication")
+                this.mustRunAfter("signIosArm64Publication")
+                this.mustRunAfter("signIosSimulatorArm64Publication")
+                this.mustRunAfter("signIosX64Publication")
+                this.mustRunAfter("signMacosArm64Publication")
+                this.mustRunAfter("signMacosX64Publication")
+                this.mustRunAfter("signTvosArm64Publication")
+                this.mustRunAfter("signTvosSimulatorArm64Publication")
+                this.mustRunAfter("signTvosX64Publication")
+                this.mustRunAfter("signWatchosArm32Publication")
+                this.mustRunAfter("signWatchosArm64Publication")
+                this.mustRunAfter("signWatchosDeviceArm64Publication")
+                this.mustRunAfter("signWatchosSimulatorArm64Publication")
+            }
+            if (this.name.startsWith("linkDebugTest")) {
+                this.mustRunAfter("signIosArm64Publication")
+                this.mustRunAfter("signIosArm64Publication")
+                this.mustRunAfter("signIosSimulatorArm64Publication")
+                this.mustRunAfter("signIosX64Publication")
+                this.mustRunAfter("signMacosArm64Publication")
+                this.mustRunAfter("signMacosX64Publication")
+                this.mustRunAfter("signTvosArm64Publication")
+                this.mustRunAfter("signTvosSimulatorArm64Publication")
+                this.mustRunAfter("signTvosX64Publication")
+                this.mustRunAfter("signWatchosArm32Publication")
+                this.mustRunAfter("signWatchosArm64Publication")
+                this.mustRunAfter("signWatchosDeviceArm64Publication")
+                this.mustRunAfter("signWatchosSimulatorArm64Publication")
+            }
+        }
+
+        if (hostOs == HostOs.WINDOWS) {
+            if (this.name.startsWith("publish")) {
+                this.mustRunAfter("signMingwX64Publication")
+            }
+            if (this.name.startsWith("compileTest")) {
+                this.mustRunAfter("signMingwX64Publication")
+            }
+            if (this.name.startsWith("linkDebugTest")) {
+                this.mustRunAfter("signMingwX64Publication")
+            }
+        }
     }
-//
-//    if (hostOsName == HostOs.LINUX) {
-//        val linuxTest by getting(KotlinNativeTest::class) {
-//            testLogging {
-//                events("PASSED", "FAILED", "SKIPPED")
-//                // showStandardStreams = true
-//            }
-//        }
-//    }
 }
 
 spotless {

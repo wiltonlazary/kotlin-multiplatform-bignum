@@ -25,7 +25,7 @@ and bug-fixing.
 
 ### WASM
 
-WASM platform is experimental, use with caution. Note that currently wasm returns a value after converting to IEEE-754 number, unlike
+WASM platform is experimental, use with caution, tests for wasm are not run on Windows and Mac at the moment. Note that currently wasm returns a value after converting to IEEE-754 number, unlike
 other platforms (JVM, JS, Native), so if you use:
 ```kotlin
 val a = BigDecimal.fromFloat(0.000000000000123f)
@@ -36,7 +36,7 @@ expect `a` to be `1.2299999885799495E-13`.
 
 #### Gradle
 ```kotlin
-implementation("com.ionspin.kotlin:bignum:0.3.9")
+implementation("com.ionspin.kotlin:bignum:0.3.10")
 ```
 
 #### Snapshot builds
@@ -46,7 +46,7 @@ repositories {
         url = uri("https://oss.sonatype.org/content/repositories/snapshots")
     }
 }
-implementation("com.ionspin.kotlin:bignum:0.3.10-SNAPSHOT")
+implementation("com.ionspin.kotlin:bignum:0.3.11-SNAPSHOT")
 
 ```
 
