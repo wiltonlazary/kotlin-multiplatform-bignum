@@ -17,7 +17,9 @@
 
 package com.ionspin.kotlin.bignum.decimal
 
+import com.ionspin.kotlin.bignum.integer.BigInteger
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -351,5 +353,25 @@ class ReportedIssueReplicationTest {
             BigDecimal.ZERO,
             rounded
         )
+    }
+
+    @Test
+    fun roundHalfAway() {
+        val result = BigDecimal.fromInt(2)
+            .divide(BigDecimal.fromInt(3), DecimalMode(2, RoundingMode.ROUND_HALF_AWAY_FROM_ZERO))
+            .doubleValue(false)
+        assertEquals(0.67f, result.toFloat())
+    }
+
+    @Test
+    fun github316toByteArrayTest() {
+        val a = BigInteger.ZERO.toByteArray()
+        val b = BigInteger.fromULong(0uL).toByteArray()
+        val c = BigInteger.fromLong(0L).toByteArray()
+        val d = BigInteger.fromInt(0).toByteArray()
+
+        assertContentEquals(a, b)
+        assertContentEquals(a, c)
+        assertContentEquals(a, d)
     }
 }
